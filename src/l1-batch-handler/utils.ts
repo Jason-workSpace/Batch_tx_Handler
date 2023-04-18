@@ -19,11 +19,11 @@ const L2MessageKind_SignedTx = 4;
 // Use brotli to decompress the compressed data and use rlp to decode to l2 message segments
 export const decompressAndDecode = (compressedData: Uint8Array): Uint8Array[] => {
   //decompress data
-  const d = brotli.decompress(Buffer.from(compressedData));
-  const output = ethers.utils.hexlify(d);
+  const decompressedData = brotli.decompress(Buffer.from(compressedData));
+  const hexData = ethers.utils.hexlify(decompressedData);
 
   //use rlp to decode stream type
-  let res = rlp.decode(output, true) as Decoded;
+  let res = rlp.decode(hexData, true) as Decoded;
   const l2Segments: Uint8Array[] = [];
   while (res.remainder !== undefined) {
     l2Segments.push(bufArrToArr(res.data as Buffer));

@@ -32,8 +32,8 @@ const argv = yargs(process.argv.slice(2))
       type: 'string',
     },
     outputFile: {
-      type: 'string'
-    }
+      type: 'string',
+    },
   })
   .demandOption('action')
   .parseSync();

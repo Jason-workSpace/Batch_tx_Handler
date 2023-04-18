@@ -1,6 +1,6 @@
 # Batch tx handler
 
-This repo has 2 way to get txns related to a single batch, one is `l1 batch handler` which decodes l1 sequencer submission tx and extract all tx included in that calldata, another is `l2 precompile handler` which uses arbitrum network's precompile to get batch information and use binary search to find all blocks related to that batch. The first way is much efficiency.
+This repo has 2 ways to get txns related to a single batch, one is `l1 batch handler` which decodes l1 sequencer submission tx and extract all tx included in that calldata, another is `l2 precompile handler` which uses arbitrum network's precompile to get batch information and use binary search to find all blocks related to that batch. The first way is much more efficiency.
 
 ## l1 batch handler
 

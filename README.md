@@ -1,12 +1,17 @@
 # Batch tx handler
 
-This repo has 2 way to get txns related to a single batch, one is to decode l1 sequencer submission tx and extract all tx included in that calldata, another is use arbitrum network's precompile to get batch information and use binary search to find all blocks related to that batch. The first way is much efficiency.
+This repo has 2 way to get txns related to a single batch, one is `l1 batch handler` which decodes l1 sequencer submission tx and extract all tx included in that calldata, another is `l2 precompile handler` which uses arbitrum network's precompile to get batch information and use binary search to find all blocks related to that batch. The first way is much efficiency.
 
 ## l1 batch handler
 
-`l1 batch handler` is a simple demo of how to decompress and decode sequencer's calldata, but this way currently hasn't implemented `startBlock` and delayed tx found (Will support in the future).
+`l1 batch handler` is a simple demo of how to decompress and decode sequencer's calldata to get all related l2 message, but this way currently hasn't implemented `startBlock` and delayed tx found (Will support in the future).
 
 This demo will tell you how to use brotli to decompress the calldata and decode them to l2 msg.
+
+See [./exec.js](./src/l1-batch-handler/exec.js) for inline explanations.
+
+TODO:
+Add `startBlock` and delayed transaction handler.
 
 ### Run Demo:
 
@@ -24,7 +29,7 @@ It has 2 functions;
 The first function, `getBlockRange`, will output the range of blocks that matched to the batch number.
 The second is `getAllTxns`, which will not only output the range of blocks, but also write all the txns to a specific file.
 
-See [./exec.js](./scripts/exec.js) for inline explanations.
+See [./exec.js](./src/l2-precompile-handler/exec.js) for inline explanations.
 
 ### Run Demo:
 

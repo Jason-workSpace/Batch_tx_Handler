@@ -1,0 +1,17 @@
+{
+  "name": "batch-tx-handler",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Jason-Wanxt <wanxutao123@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@arbitrum/nitro-contracts": "^1.0.1",
+    "@arbitrum/sdk": "^3.1.2",
+    "@types/brotli": "^1.3.1",
+    "brotli": "^1.3.3",
+    "ethereumjs-util": "^7.1.5",
+    "ethers": "^5.7.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
+  }
+}

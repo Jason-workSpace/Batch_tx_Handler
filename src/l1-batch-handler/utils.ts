@@ -11,17 +11,20 @@ const BrotliMessageHeaderByte          = 0
 
 const BatchSegmentKindL2Message        = 0
 const BatchSegmentKindL2MessageBrotli  = 1
+const BatchSegmentKindDelayedMessages  = 2
 
 const L2MessageKind_Batch              = 3
 const L2MessageKind_SignedTx           = 4
 
 const provider = new ethers.providers.JsonRpcProvider("https://eth-mainnet.g.alchemy.com/v2/5WJKrYtTlkSBN1c4EoMIIMcueB3gSUpn")
 
-
+// Use brotli to decompress the compressed data and use rlp to decode to l2 message segments
 export const decompressAndDecode = (compressedData: Uint8Array): Uint8Array[] => {
+    //decompress data
     let d = brotli.decompress(Buffer.from(compressedData))
     let output = ethers.utils.hexlify(d)
     
+    //use rlp to decode stream type
     let res = rlp.decode(output ,true) as Decoded
     let l2Segments: Uint8Array[] = []
     while (res.remainder !== undefined) {
@@ -31,12 +34,15 @@ export const decompressAndDecode = (compressedData: Uint8Array): Uint8Array[] =>
     return l2Segments
 }
 
+//Check if the raw data valid
 export const processRawData = (rawData: Uint8Array): Uint8Array => {
-    console.log(rawData[0])
+    // This is to make sure this message is Nitro Rollups type. (For example: Anytrust use 0x80 here)
     if(rawData[0] !== BrotliMessageHeaderByte) {
         throw Error("Can only process brotli compressed data.")
     }
+    //remove type tag of this message
     const compressedData = rawData.subarray(1)
+
     if(compressedData.length === 0) {
         throw new Error("Empty sequencer message")
     }
@@ -44,14 +50,16 @@ export const processRawData = (rawData: Uint8Array): Uint8Array => {
 }
 
 
-const getNextSerializedTransactionSize = (remainData: Uint8Array, start: number): bigint => {
+const getNextSerializedTransactionSize = (remainData: Uint8Array, start: number): number => {
+    //the size tag of each message here length 8 bytes
     const sizeBytes = remainData.subarray(start, start + 8)
-    const size = ethers.BigNumber.from(sizeBytes).toBigInt()
+    const size = ethers.BigNumber.from(sizeBytes).toNumber()
     if(size > MaxL2MessageSize) {
         throw new Error("size too large in getOneSerializedTransaction")
     }
     return size
 }
+
 
 export const getAllL2Msgs = (l2segments: Uint8Array[]):Uint8Array[] => {
     let l2Msgs:Uint8Array[] = []
@@ -59,11 +67,18 @@ export const getAllL2Msgs = (l2segments: Uint8Array[]):Uint8Array[] => {
     for(let i = 0; i < l2segments.length; i++) {
         let kind = l2segments[i][0]
         let segment = l2segments[i].subarray(1)
+        /**
+         * Here might contain Timestamp updates and l1 block updates message here, but it is useless
+         * in finding tx hash here, so we just need to find tx related messages.
+         */
         if(kind === BatchSegmentKindL2Message || kind === BatchSegmentKindL2MessageBrotli) {
             if(kind === BatchSegmentKindL2MessageBrotli) {
                 segment = brotli.decompress(Buffer.from(segment))
             }
             l2Msgs.push(segment)
+        }
+        if(kind === BatchSegmentKindDelayedMessages) {
+            //TODO
         }
     }
 
@@ -79,16 +94,18 @@ export const decodeL2Msgs = (l2Msgs: Uint8Array): string[] => {
     
     const kind = l2Msgs[0]
     if(kind === L2MessageKind_SignedTx) {
-        const serializedTransaction = l2Msgs.subarray(1)
-        txHash.push(ethers.utils.keccak256(serializedTransaction))
+        const serializedTransaction = l2Msgs.subarray(1) // remove kind tag
+        const currentHash = ethers.utils.keccak256(serializedTransaction) // calculate tx hash
+        txHash.push(currentHash) 
     } else if(kind === L2MessageKind_Batch) {
         let remainData: Uint8Array = l2Msgs.subarray(1)
         const lengthOfData = remainData.length
-        let current = BigInt(0)
+        let current = 0
         while(current < lengthOfData) {
             const nextSize = getNextSerializedTransactionSize(remainData, Number(current))
-            current += 8n // the size of next data length value is 8 bytes
+            current += 8 // the size of next data length value is 8 bytes, so we need to skip it
             const endOfNext = current + nextSize
+            // read next segment data which range from ${current} to ${endOfNext}
             const nextData = remainData.subarray(Number(current), Number(endOfNext))
             txHash.push(...decodeL2Msgs(nextData))
             current = endOfNext     
@@ -97,6 +114,7 @@ export const decodeL2Msgs = (l2Msgs: Uint8Array): string[] => {
     return txHash
 }
 
+// Get related sequencer batch data from a sequencer batch submission transaction.
 export const getRawData = async (sequencerTx: string): Promise<Uint8Array> => {
     const contractInterface = new Interface(seqFunctionAbi)
     const l2Network = await getL2Network(42161)
@@ -110,8 +128,8 @@ export const getRawData = async (sequencerTx: string): Promise<Uint8Array> => {
         throw new Error("Not a sequencer inbox transaction")
     }
 
-    const calldata = contractInterface.decodeFunctionData("addSequencerL2BatchFromOrigin",tx.data)
-    const seqData = calldata["data"].substring(2) //remove '0x'
+    const funcData = contractInterface.decodeFunctionData("addSequencerL2BatchFromOrigin",tx.data)
+    const seqData = funcData["data"].substring(2) //remove '0x'
     const rawData = Uint8Array.from(Buffer.from(seqData,'hex'))
     return rawData
 }

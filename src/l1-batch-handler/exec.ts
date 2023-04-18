@@ -18,5 +18,6 @@ export const startL1BatchHandler = async (sequencerTx: string) => {
         txHash.push(...decodeL2Msgs(l2Msgs[i]))
     }
 
-    fs.writeFileSync(args.outputFile,"[" + txHash + "]")
+    console.log(`Get all ${txHash.length} l2 transaction and ${l2Msgs.length} blocks in this batch, writing tx to ${args.outputFile}`)
+    fs.writeFileSync(args.outputFile, txHash.toString())
 }

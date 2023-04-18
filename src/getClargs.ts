@@ -22,15 +22,20 @@ const argv = yargs(process.argv.slice(2))
     action: {
       type: 'string',
     },
+    precompileAction: {
+      type: 'string',
+    },
     batchNum: {
       type: 'number',
+    },
+    l1TxHash: {
+      type: 'string',
     },
     outputFile: {
       type: 'string'
     }
   })
   .demandOption('action')
-  .demandOption('batchNum')
   .parseSync();
 
 export default argv;
